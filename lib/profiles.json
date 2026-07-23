@@ -1,0 +1,44 @@
+{
+  "runtime": "cursor",
+  "default": "hybrid",
+  "profiles": {
+    "max": {
+      "label": "Strongest everywhere",
+      "base": "quality",
+      "overrides": { "opus": "claude-opus-4-8-thinking-high", "sonnet": "cursor-grok-4.5-high", "haiku": "gpt-5.5-high" },
+      "vendors": ["Anthropic", "xAI", "OpenAI"],
+      "verified": true,
+      "unverifiedIds": []
+    },
+    "hybrid": {
+      "label": "Plan+review premium, execute value (default)",
+      "base": "balanced",
+      "models": { "planning": "opus", "verification": "opus", "execution": "sonnet", "research": "sonnet" },
+      "overrides": { "opus": "claude-opus-4-8-thinking-high", "sonnet": "composer-2.5", "haiku": "gpt-5.3-codex-high" },
+      "vendors": ["Anthropic", "Cursor", "OpenAI"],
+      "verified": true,
+      "unverifiedIds": []
+    },
+    "value": {
+      "label": "Best price/performance",
+      "base": "budget",
+      "overrides": { "opus": "gemini-3-pro", "sonnet": "glm-5.2", "haiku": "composer-2.5" },
+      "vendors": ["Google", "Zhipu", "Cursor"],
+      "verified": false,
+      "unverifiedIds": ["gemini-3-pro", "glm-5.2"]
+    },
+    "budget": {
+      "label": "Cheapest models only",
+      "base": "budget",
+      "overrides": { "opus": "glm-5.2", "sonnet": "composer-2.5", "haiku": "gemini-3.5-flash" },
+      "vendors": ["Zhipu", "Cursor", "Google"],
+      "verified": false,
+      "unverifiedIds": ["glm-5.2", "gemini-3.5-flash"]
+    }
+  },
+  "notes": {
+    "verifiedSource": "Cursor Cloud-Agents List Models API (2026-07-22): composer-2.5, cursor-grok-4.5-high, claude-*-thinking-*, gpt-*.",
+    "unverifiedSource": "gemini-* and glm-* come from Cursor's IDE model picker / OpenAI-compatible custom-model integration — confirm the exact slug in Settings > Models before use.",
+    "glm": "glm-5.2 supersedes glm-5.1 (newer, cheaper, stronger). glm-5.1 kept only as a documented swap."
+  }
+}

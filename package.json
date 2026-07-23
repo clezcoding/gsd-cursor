@@ -1,0 +1,26 @@
+{
+  "name": "gsd-cursor",
+  "version": "1.0.0",
+  "description": "A GSD EoS that adds a Cursor runtime tier map and four model profiles (max / hybrid / value / budget) to your GSD config — without modifying gsd-core.",
+  "bin": {
+    "gsd-cursor": "bin/gsd-cursor.cjs"
+  },
+  "type": "commonjs",
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18",
+    "gsd": ">=1.39.0"
+  },
+  "keywords": ["gsd", "gsd-core", "eos", "cursor", "model-profile", "ai-coding"],
+  "author": "clezcoding",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clezcoding/gsd-cursor.git"
+  }
+}
