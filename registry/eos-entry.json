@@ -3,7 +3,7 @@
   "name": "GSD Cursor Model Profiles",
   "type": "eos",
   "repo": "clezcoding/gsd-cursor",
-  "description": "Adds a Cursor runtime tier map and four ready-to-use model profiles (max / hybrid / value / budget) to a GSD project by writing model_profile_overrides.cursor and the models phase-type block into the user's GSD config — spanning Anthropic, OpenAI, Google Gemini, xAI Grok, Zhipu GLM and Cursor Composer, without modifying gsd-core.",
+  "description": "Adds a Cursor runtime tier map and four ready-to-use model profiles (max / hybrid / value / budget) to a GSD project by writing model_profile_overrides.cursor and the models phase-type block into the user's GSD config, spanning Anthropic, OpenAI, Google Gemini, xAI Grok, Zhipu GLM and Cursor Composer, without modifying gsd-core.",
   "author": "clezcoding",
   "license": "MIT",
   "enginesGsd": ">=1.39.0",
@@ -16,7 +16,7 @@
     "axes": {
       "embeddingMode": "declarative",
       "commandSurface": "prose-only",
-      "dispatch": "No task dispatch; a CLI that declaratively writes a Cursor model tier map and four profile presets into the GSD config, then hands control back to GSD.",
+      "dispatch": "Writes a Cursor model tier map and four profile presets into the GSD config without dispatching tasks",
       "modelMode": "active",
       "hookBus": "none",
       "stateIO": "filesystem",
@@ -24,5 +24,5 @@
       "runtime": "node"
     }
   },
-  "discussion": "https://github.com/open-gsd/gsd-core/discussions/REPLACE_WITH_THREAD_ID"
+  "discussion": "https://github.com/open-gsd/gsd-core/discussions/2578"
 }
