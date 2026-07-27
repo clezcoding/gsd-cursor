@@ -14,7 +14,7 @@
   ],
   "engines": {
     "node": ">=18",
-    "gsd": ">=1.39.0"
+    "gsd": ">=1.0.0"
   },
   "keywords": ["gsd", "gsd-core", "eos", "cursor", "model-profile", "ai-coding"],
   "author": "clezcoding",
