@@ -2,20 +2,21 @@
 
 # gsd-cursor
 
-### Ready-to-use Cursor model profiles for GSD Core
+### Researched Cursor model routing for GSD Core
 
-Install a Cursor-native model tier map and switch between four opinionated routing profiles — without patching or forking GSD Core.
+Six phase-aware profiles. Exact Cursor model IDs. Safe install, local validation, and exact restore — without patching GSD Core.
 
 [![Latest release](https://img.shields.io/github/v/release/clezcoding/gsd-cursor?sort=semver&style=for-the-badge&logo=github&label=release)](https://github.com/clezcoding/gsd-cursor/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/clezcoding/gsd-cursor/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=tests)](https://github.com/clezcoding/gsd-cursor/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![GSD Core](https://img.shields.io/badge/GSD_Core-%E2%89%A51.0.0-F0883E?style=for-the-badge)](https://github.com/open-gsd/gsd-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2563EB?style=for-the-badge)](LICENSE)
 
-**`max` · `hybrid` · `value` · `budget`**
+**`max` · `hybrid` · `value` · `budget` · `frontier` · `openweight`**
 
-Anthropic · Cursor Composer · OpenAI · Google Gemini · xAI Grok · Zhipu GLM
+Anthropic · Cursor · OpenAI · Kimi · Google · Z.ai
 
-[Quick start](#quick-start) · [Profiles](#profile-catalog) · [CLI reference](#cli-reference) · [How it works](#how-it-works) · [Troubleshooting](#troubleshooting)
+[Quick start](#quick-start) · [Choose a profile](#choose-a-profile) · [CLI](#cli-reference) · [Safety](#safe-configuration-management) · [Troubleshooting](#troubleshooting)
 
 </div>
 
@@ -23,214 +24,288 @@ Anthropic · Cursor Composer · OpenAI · Google Gemini · xAI Grok · Zhipu GLM
 
 ## What is gsd-cursor?
 
-`gsd-cursor` is a small, dependency-free command-line tool that writes Cursor-specific model routing into an existing [GSD Core](https://github.com/open-gsd/gsd-core) configuration.
+`gsd-cursor` is a dependency-free CLI that installs a complete Cursor model-routing policy into an existing [GSD Core](https://github.com/open-gsd/gsd-core) configuration.
 
-It solves one narrow problem: GSD understands the `cursor` runtime, but it does not ship a built-in Cursor tier map. Without an explicit `model_profile_overrides.cursor` block, tier names such as `opus`, `sonnet`, and `haiku` can resolve to model aliases intended for a different runtime. `gsd-cursor` supplies that missing map and packages it into four ready-to-use strategies.
+GSD assigns work to abstract tiers such as `opus`, `sonnet`, and `haiku`. Cursor exposes a broad, frequently changing catalog with provider-specific IDs. `gsd-cursor` connects those two systems:
 
-It is delivered as an **EoS (Embeddable Orchestration System)** integration, following the maintainer direction in [open-gsd/gsd-core#2533](https://github.com/open-gsd/gsd-core/issues/2533). It does not modify GSD Core source files, install hooks, dispatch agents, or replace GSD's own orchestration.
+```text
+GSD agent → phase → tier → exact Cursor model ID
+```
+
+Instead of maintaining that mapping manually, choose one of six opinionated profiles. Each profile defines:
+
+- a complete tier map for the Cursor runtime;
+- routing for all six current GSD phases;
+- targeted agent overrides where a specialist model materially improves the result;
+- model provenance and operational notes;
+- a reversible configuration update with a pre-install snapshot.
+
+The project is an **EoS (Embeddable Orchestration System)** integration. It configures GSD through documented extension points and never modifies, forks, or monkey-patches `open-gsd/gsd-core`.
+
+## Why use it?
+
+Cursor's model picker is broad enough that a single “best model” is usually the wrong answer. Planning, implementation, repository mapping, research, and verification have different cost, latency, context, and reasoning requirements.
+
+`gsd-cursor` makes those trade-offs explicit:
+
+| Need | Profile |
+|---|---|
+| Highest possible quality | [`max`](#max--no-compromise-quality) |
+| Strong, diverse daily default | [`hybrid`](#hybrid--balanced-multi-vendor-default) |
+| Best measured performance per dollar | [`value`](#value--performance-per-dollar) |
+| Low-cost daily automation | [`budget`](#budget--low-cost-daily-work) |
+| Cursor-developed models only | [`frontier`](#frontier--cursor-native-frontier) |
+| Kimi and GLM open-weight families | [`openweight`](#openweight--kimi--glm) |
 
 ### At a glance
 
-| Capability | What gsd-cursor does |
+| Capability | Behavior |
 |---|---|
-| Runtime | Sets GSD's runtime to `cursor` |
-| Tier mapping | Maps `opus`, `sonnet`, and `haiku` to Cursor model IDs |
-| Profiles | Provides `max`, `hybrid`, `value`, and `budget` strategies |
-| Phase routing | The default `hybrid` profile routes planning/review differently from execution/research |
-| Scope | Supports project-local and user-global GSD configuration |
-| Dependencies | Uses Node.js built-ins only; no runtime npm dependencies |
-| Network access | The CLI makes no network requests |
-| Core isolation | Never edits the `open-gsd/gsd-core` package or repository |
-
-## Why this exists
-
-GSD separates a workload's **tier** from the runtime-specific **model ID**:
-
-```text
-agent or phase → tier (opus / sonnet / haiku) → runtime model ID
-```
-
-That abstraction is useful only when the selected runtime has a valid tier map. Cursor exposes models from several providers, and their IDs do not necessarily match the aliases used by Claude Code or another GSD runtime. Manually maintaining a map is possible, but every user then has to answer the same questions:
-
-- Which Cursor model should handle planning and verification?
-- Which model offers better value for execution and research?
-- Which IDs are confirmed by Cursor's API, and which depend on the local model picker?
-- How should project-local and global GSD settings be updated safely?
-
-`gsd-cursor` turns those decisions into versioned, inspectable profiles.
+| Runtime | Sets GSD runtime to `cursor` |
+| Current GSD policy | Writes `model_policy.runtime_tiers.cursor` |
+| Compatibility | Also writes `model_profile_overrides.cursor` for earlier GSD releases |
+| Phase coverage | Routes `planning`, `discuss`, `research`, `execution`, `verification`, and `completion` |
+| Specialist routing | Adds a small set of profile-specific `model_overrides` |
+| Validation | Checks exact IDs against the signed-in local Cursor CLI catalog |
+| Write safety | Rejects malformed JSON, backs up the previous file, and replaces atomically |
+| Uninstall | Restores the exact pre-install values for every managed field |
+| Dependencies | Node.js built-ins only; zero runtime npm dependencies |
+| Network use | The gsd-cursor CLI itself makes no network requests |
 
 ## Quick start
 
-### 1. Check the prerequisites
-
-You need:
+### Prerequisites
 
 - Node.js 18 or newer;
 - GSD Core 1.0.0 or newer;
-- Cursor with access to the models used by your chosen profile;
-- an existing GSD configuration, or permission for the CLI to create one.
+- Cursor Desktop and the signed-in Cursor CLI;
+- access to the models used by the selected profile.
+
+Check the local tools:
 
 ```bash
 node --version
+agent --version
 ```
 
-### 2. Install the pinned release
+### Install
 
-Install from the tagged GitHub release so the model catalog does not change unexpectedly:
+Install the pinned release from GitHub:
 
 ```bash
-npm install --global github:clezcoding/gsd-cursor#v1.0.1
+npm install --global github:clezcoding/gsd-cursor#v1.1.0
 ```
 
-### 3. Install the default profile
-
-Run this from your GSD project directory:
+From a GSD project, install the default `hybrid` profile:
 
 ```bash
-gsd-cursor install
+gsd-cursor install --local
 ```
 
-The default is `hybrid`. When the current directory contains `.planning/`, the CLI writes to `.planning/config.json`. Otherwise it writes to `~/.gsd/defaults.json`.
+Validate every model ID against your signed-in Cursor account:
 
-### 4. Confirm the result
+```bash
+gsd-cursor doctor
+```
+
+Inspect the active configuration:
 
 ```bash
 gsd-cursor status
 ```
 
-You should see the active profile, selected scope, target file, and the installed Cursor tier map.
-
 > [!TIP]
-> Use `gsd-cursor install --local` when you want deterministic project-local behavior, even if `.planning/` has not been created yet.
+> Use `--local` for reproducible project-specific routing. Without an explicit scope, gsd-cursor selects local scope only when the current directory already contains `.planning/`; otherwise it uses the global defaults.
 
-## Profile catalog
+## Choose a profile
 
-| Profile | Strategy | GSD base profile | `opus` | `sonnet` | `haiku` | Verification |
+### Profile comparison
+
+| Profile | Primary goal | Opus tier | Sonnet tier | Haiku tier |
+|---|---|---|---|---|
+| **`max`** | No-compromise quality | `claude-fable-5-thinking-max` | `claude-opus-5-thinking-max` | `gpt-5.6-sol-max` |
+| **`hybrid`** *(default)* | Balanced multi-vendor work | `claude-opus-5-thinking-high` | `kimi-k3-high` | `composer-2.5` |
+| **`value`** | Performance per dollar | `cursor-grok-4.5-high` | `gpt-5.6-terra-xhigh` | `composer-2.5` |
+| **`budget`** | Low-cost daily work | `glm-5.2-high` | `composer-2.5` | `gpt-5.6-luna-medium` |
+| **`frontier`** | Cursor-native models only | `cursor-grok-4.5-high-fast` | `composer-2.5` | `cursor-grok-4.5-low-fast` |
+| **`openweight`** | Kimi + GLM | `kimi-k3-max` | `glm-5.2-max` | `kimi-k2.7-code` |
+
+### Phase routing
+
+The values below are tiers. Each tier resolves through the model map shown above.
+
+| Profile | Planning | Discuss | Research | Execution | Verification | Completion |
 |---|---|---|---|---|---|---|
-| **`max`** | Strongest models across all tiers | `quality` | `claude-opus-4-8-thinking-high` | `cursor-grok-4.5-high` | `gpt-5.5-high` | API-verified |
-| **`hybrid`** *(default)* | Premium planning/review; value-oriented execution/research | `balanced` | `claude-opus-4-8-thinking-high` | `composer-2.5` | `gpt-5.3-codex-high` | API-verified |
-| **`value`** | Best intended price/performance balance | `budget` | `gemini-3-pro` | `glm-5.2` | `composer-2.5` | Gemini/GLM must be confirmed locally |
-| **`budget`** | Lowest-cost intended mix | `budget` | `glm-5.2` | `composer-2.5` | `gemini-3.5-flash` | Gemini/GLM must be confirmed locally |
+| `max` | opus | opus | sonnet | opus | haiku | haiku |
+| `hybrid` | opus | opus | haiku | sonnet | haiku | sonnet |
+| `value` | opus | opus | haiku | sonnet | opus | sonnet |
+| `budget` | opus | opus | haiku | sonnet | sonnet | sonnet |
+| `frontier` | opus | opus | sonnet | sonnet | opus | sonnet |
+| `openweight` | opus | opus | opus | haiku | sonnet | sonnet |
 
-### Choosing a profile
+### Specialist overrides
 
-- Choose **`hybrid`** for the safest general-purpose default. It keeps high-leverage reasoning on the `opus` tier and uses Composer for the larger volume of execution and research work.
-- Choose **`max`** when output quality matters more than cost and you want only API-verified IDs.
-- Choose **`value`** when you have confirmed Gemini and GLM model availability in your Cursor account and want a broader provider mix.
-- Choose **`budget`** for experiments and cost-sensitive work after verifying its account-dependent IDs.
+Direct agent overrides take precedence over phase tiers for the named GSD agent.
 
-### Model-ID verification
+| Profile | GSD agent | Exact model ID | Purpose |
+|---|---|---|---|
+| `hybrid` | `gsd-code-reviewer` | `gpt-5.6-sol-high` | Independent high-rigor review |
+| `hybrid` | `gsd-security-auditor` | `gpt-5.6-sol-high` | Security verification |
+| `hybrid` | `gsd-verifier` | `gpt-5.6-sol-high` | Goal-backward verification |
+| `budget` | `gsd-ai-researcher` | `gemini-3.6-flash-medium` | Large-context AI research |
+| `budget` | `gsd-ui-researcher` | `gemini-3.6-flash-medium` | UI and multimodal research |
+| `frontier` | `gsd-executor` | `cursor-grok-4.5-medium` | Sustained implementation without Fast pricing |
+| `frontier` | `gsd-codebase-mapper` | `composer-2.5-fast` | Low-latency repository mapping |
+| `frontier` | `gsd-pattern-mapper` | `composer-2.5-fast` | Low-latency pattern discovery |
+| `frontier` | `gsd-doc-classifier` | `composer-2.5` | Efficient document classification |
+| `frontier` | `gsd-research-synthesizer` | `composer-2.5` | Efficient synthesis |
+| `openweight` | `gsd-doc-classifier` | `glm-5.2-high` | Economical classification |
+| `openweight` | `gsd-integration-checker` | `glm-5.2-high` | Independent integration checks |
+| `openweight` | `gsd-plan-checker` | `glm-5.2-high` | Independent plan checks |
 
-The profiles distinguish between two provenance levels.
+### `max` — no-compromise quality
 
-**Verified through Cursor's Cloud-Agents `List Models` API on 2026-07-22:**
+Use `max` when correctness and depth matter more than cost: architecture changes, difficult migrations, security-sensitive implementation, or long-running autonomous work.
 
-- `composer-2.5`
-- `cursor-grok-4.5-high`
-- the included `claude-*-thinking-*` IDs
-- the included `gpt-*` IDs
-
-**Not present in that API response and therefore account-dependent:**
-
-- `gemini-3-pro`
-- `gemini-3.5-flash`
-- `glm-5.2`
-
-Before using `value` or `budget`, open **Cursor → Settings → Models** and confirm every listed ID is available to your account. Gemini may appear as a native model; GLM may require Cursor's OpenAI-compatible custom-model integration.
+- Fable 5 Max handles planning, discussion, and execution.
+- Opus 5 Max handles research through a separate frontier family.
+- GPT-5.6 Sol Max performs verification and completion.
 
 > [!WARNING]
-> Model catalogs rotate. A profile is a versioned recommendation, not a guarantee that every Cursor plan or region exposes every model forever. The CLI warns when a selected profile contains IDs that were not present in the verification API response.
-
-## How `hybrid` works
-
-The default profile combines a tier map with GSD's phase-type routing:
-
-```mermaid
-flowchart LR
-    P["Planning"] --> O["opus tier"]
-    V["Verification"] --> O
-    E["Execution"] --> S["sonnet tier"]
-    R["Research"] --> S
-    O --> OPUS["claude-opus-4-8-thinking-high"]
-    S --> COMPOSER["composer-2.5"]
-```
-
-Its resulting configuration is equivalent to:
-
-```json
-{
-  "runtime": "cursor",
-  "model_profile": "balanced",
-  "models": {
-    "planning": "opus",
-    "verification": "opus",
-    "execution": "sonnet",
-    "research": "sonnet"
-  },
-  "model_profile_overrides": {
-    "cursor": {
-      "opus": "claude-opus-4-8-thinking-high",
-      "sonnet": "composer-2.5",
-      "haiku": "gpt-5.3-codex-high"
-    }
-  },
-  "_gsd_cursor": {
-    "profile": "hybrid",
-    "managedBy": "gsd-cursor",
-    "version": "1.0.0"
-  }
-}
-```
-
-GSD first chooses a tier for the current agent or phase and then resolves that tier through `model_profile_overrides.cursor`. A direct per-agent `model_overrides` entry remains outside the map managed by this tool and can still take precedence in GSD's own resolution flow.
-
-## Installation and scope
-
-### Install a specific profile
+> Cursor does not show Fable 5 as ZDR-eligible. Review your organization's retention requirements before sending sensitive code. `max` is also expected to be the most expensive profile.
 
 ```bash
-gsd-cursor install --profile max
-gsd-cursor install --profile hybrid
-gsd-cursor install --profile value
-gsd-cursor install --profile budget
+gsd-cursor install --profile max --local
 ```
 
-### Project-local configuration
+### `hybrid` — balanced multi-vendor default
+
+`hybrid` is the recommended starting point. It deliberately separates planning, execution, volume work, and critical verification across four model families.
+
+- Opus 5 High plans and discusses.
+- Kimi K3 High performs most implementation and completion work.
+- Composer 2.5 handles research and lightweight verification.
+- GPT-5.6 Sol High independently reviews security, code quality, and final goal achievement.
 
 ```bash
 gsd-cursor install --profile hybrid --local
 ```
 
-Target:
+### `value` — performance per dollar
 
-```text
-<current directory>/.planning/config.json
-```
+`value` concentrates premium reasoning where it has the greatest leverage.
 
-Use local scope when different projects need different Cursor routing strategies or when the configuration should travel with the project.
+- Cursor Grok 4.5 High handles plans, decisions, and verification.
+- GPT-5.6 Terra XHigh handles execution and completion.
+- Composer 2.5 handles research volume.
 
-### User-global configuration
+CursorBench currently places Grok 4.5 High among the strongest cost-adjusted models. Cursor also discloses that an older Cursor repository snapshot entered Grok training, which may give it an unknown advantage on that benchmark. Treat benchmark scores as evidence, not certainty.
 
 ```bash
-gsd-cursor install --profile hybrid --global
+gsd-cursor install --profile value --local
 ```
 
-Target:
+### `budget` — low-cost daily work
 
-```text
-~/.gsd/defaults.json
+`budget` avoids legacy low-end models and instead combines current economical families.
+
+- GLM 5.2 High handles planning and discussion.
+- Composer 2.5 performs execution, verification, and completion.
+- GPT-5.6 Luna Medium handles routine research.
+- Gemini 3.6 Flash Medium is reserved for AI and UI research where its context and multimodal capabilities are useful.
+
+```bash
+gsd-cursor install --profile budget --local
 ```
 
-Use global scope when you want a default for GSD projects that do not override these settings locally.
+### `frontier` — Cursor-native frontier
 
-### Automatic scope selection
+`frontier` uses only models developed or jointly developed by Cursor: Cursor Grok 4.5 and Composer 2.5.
 
-When neither flag is passed, scope is resolved as follows:
+The Sonnet tier intentionally maps to **`composer-2.5`**. Fast Composer is limited to mapping agents, while Grok Medium is assigned directly to execution. This keeps everyday agent work responsive without applying Fast pricing to every Sonnet-tier request.
 
-1. If `<cwd>/.planning/` exists, use local scope.
-2. Otherwise, use global scope.
+- Opus: `cursor-grok-4.5-high-fast`
+- Sonnet: `composer-2.5`
+- Haiku: `cursor-grok-4.5-low-fast`
+- Execution: `cursor-grok-4.5-medium`
+- Mapping: `composer-2.5-fast`
 
-This check is based on the directory's existence, not on whether `.planning/config.json` already exists.
+```bash
+gsd-cursor install --profile frontier --local
+```
+
+> [!NOTE]
+> Cursor states that Composer 2.5 Fast has the same intelligence as Composer 2.5, with lower latency and higher token prices. Fast variants are therefore used selectively.
+
+### `openweight` — Kimi + GLM
+
+`openweight` is a two-family stack for users who explicitly want Kimi and GLM throughout the workflow.
+
+- Kimi K3 Max handles long-horizon planning, discussion, and research.
+- Kimi K2.7 Code handles focused implementation.
+- GLM 5.2 Max provides an independent verification and completion path.
+- GLM 5.2 High handles lighter classification and checking tasks.
+
+```bash
+gsd-cursor install --profile openweight --local
+```
+
+> [!IMPORTANT]
+> “Open-weight” describes the model families, not where inference runs. These IDs still use Cursor's hosted model routing; gsd-cursor does not download or run model weights locally.
+
+## How routing works
+
+```mermaid
+flowchart LR
+    A["GSD agent"] --> P["Phase type"]
+    P --> T["opus / sonnet / haiku"]
+    T --> R["model_policy.runtime_tiers.cursor"]
+    R --> M["Exact Cursor model ID"]
+    O["Optional direct agent override"] -. "takes precedence" .-> M
+```
+
+For `hybrid`, the installed configuration includes the following effective structure:
+
+```json
+{
+  "runtime": "cursor",
+  "model_profile": "balanced",
+  "model_policy": {
+    "runtime_tiers": {
+      "cursor": {
+        "opus": { "model": "claude-opus-5-thinking-high" },
+        "sonnet": { "model": "kimi-k3-high" },
+        "haiku": { "model": "composer-2.5" }
+      }
+    }
+  },
+  "model_profile_overrides": {
+    "cursor": {
+      "opus": "claude-opus-5-thinking-high",
+      "sonnet": "kimi-k3-high",
+      "haiku": "composer-2.5"
+    }
+  },
+  "models": {
+    "planning": "opus",
+    "discuss": "opus",
+    "research": "haiku",
+    "execution": "sonnet",
+    "verification": "haiku",
+    "completion": "sonnet"
+  },
+  "model_overrides": {
+    "gsd-code-reviewer": "gpt-5.6-sol-high",
+    "gsd-security-auditor": "gpt-5.6-sol-high",
+    "gsd-verifier": "gpt-5.6-sol-high"
+  }
+}
+```
+
+The two Cursor tier-map blocks intentionally contain the same data:
+
+- `model_policy.runtime_tiers.cursor` is the current GSD runtime-policy surface.
+- `model_profile_overrides.cursor` keeps compatibility with GSD releases using the earlier override surface.
 
 ## CLI reference
 
@@ -239,403 +314,332 @@ This check is based on the directory's existence, not on whether `.planning/conf
 | Command | Purpose |
 |---|---|
 | `gsd-cursor install` | Install the default `hybrid` profile |
-| `gsd-cursor install --profile <name>` | Install a chosen profile |
+| `gsd-cursor install --profile <name>` | Install a specific profile |
 | `gsd-cursor use <name>` | Switch the selected configuration to another profile |
-| `gsd-cursor status` | Show whether gsd-cursor is active and print the Cursor override map |
-| `gsd-cursor list` | Print every bundled profile, tier map, vendor set, and verification state |
-| `gsd-cursor uninstall` | Remove the managed Cursor override map and management marker |
+| `gsd-cursor list` | Display all bundled profiles and exact tier IDs |
+| `gsd-cursor status` | Display active profile, routing, overrides, and restore state |
+| `gsd-cursor doctor` | Validate every selected model ID through the local Cursor CLI |
+| `gsd-cursor uninstall` | Restore pre-install values for every managed field |
 
-Every configuration-changing command accepts `--local` or `--global`.
+All commands that read or change configuration accept `--local` or `--global`. `doctor` also accepts `--profile` to validate a profile before installing it.
 
-### `install`
+### Install
 
 ```text
-gsd-cursor install [--profile <max|hybrid|value|budget>] [--local|--global]
+gsd-cursor install [--profile <max|hybrid|value|budget|frontier|openweight>] [--local|--global]
 ```
-
-Behavior:
-
-- defaults to `hybrid`;
-- resolves the target scope;
-- reads the target JSON file, if present;
-- applies the selected profile;
-- writes formatted JSON with a trailing newline;
-- prints a verification warning for `value` and `budget`.
 
 Examples:
 
 ```bash
 gsd-cursor install
-gsd-cursor install --profile max --local
-gsd-cursor install --profile budget --global
+gsd-cursor install --profile frontier --local
+gsd-cursor install --profile openweight --global
 ```
 
-### `use`
+### Switch profile
 
 ```text
-gsd-cursor use <max|hybrid|value|budget> [--local|--global]
+gsd-cursor use <max|hybrid|value|budget|frontier|openweight> [--local|--global]
 ```
-
-Switches the selected target to a different profile using the same write behavior as `install`.
 
 ```bash
 gsd-cursor use value --local
 ```
 
-### `status`
+The original pre-install snapshot is retained across profile switches. Uninstall therefore restores the state from before the first managed install, not the previously selected gsd-cursor profile.
+
+### Validate models
 
 ```text
-gsd-cursor status [--local|--global]
+gsd-cursor doctor [--profile <name>] [--local|--global]
 ```
 
-Reads the `_gsd_cursor` marker. If installed, it prints the profile, scope, config path, and current `model_profile_overrides.cursor` object. It does not contact Cursor or test whether model IDs are currently available.
+`doctor` runs the following signed-in local Cursor command without a shell:
 
-### `list`
-
-```text
-gsd-cursor list
+```bash
+agent --list-models
 ```
 
-Prints the bundled catalog from `lib/profiles.json`. This command does not read or modify your GSD configuration.
+It compares exact IDs, reports every missing model, and exits non-zero if the profile is not fully available.
 
-### `uninstall`
+Validate before installing:
 
-```text
-gsd-cursor uninstall [--local|--global]
+```bash
+gsd-cursor doctor --profile openweight
 ```
 
-Removes:
+Validate the active profile:
 
-- `model_profile_overrides.cursor`
-- `_gsd_cursor`
+```bash
+gsd-cursor doctor --local
+```
 
-It deliberately leaves all other keys untouched, including `runtime`, `model_profile`, and `models`. It is not a snapshot-based rollback of the pre-install state.
+### Inspect status
+
+```bash
+gsd-cursor status --local
+```
+
+Status reports:
+
+- active profile and package version;
+- current runtime tier map;
+- complete phase routing;
+- direct agent overrides;
+- whether an exact restore snapshot is available.
+
+### Uninstall
 
 ```bash
 gsd-cursor uninstall --local
 npm uninstall --global gsd-cursor
 ```
 
-## How it works
+For installations created by gsd-cursor 1.1.0 or newer, uninstall restores every managed value to its exact pre-install state. Unrelated settings and edits are preserved.
 
-`gsd-cursor` has two runtime components:
+## Local and global scope
 
-```text
-bin/gsd-cursor.cjs   CLI, scope resolution, JSON merge, status and uninstall
-lib/profiles.json    Versioned profile catalog and model-ID provenance
-```
-
-The CLI uses only Node.js built-in modules (`fs`, `path`, and `os`). It does not invoke GSD, Cursor, a shell, or a remote API.
-
-### Keys managed during install or profile switching
-
-| Key | Write behavior |
-|---|---|
-| `runtime` | Set to `cursor` |
-| `model_profile` | Set to the selected profile's GSD base (`quality`, `balanced`, or `budget`) |
-| `model_profile_overrides.cursor` | Replaced with the selected profile's complete three-tier map |
-| `models` | For `hybrid`, merges planning/verification/execution/research tier choices into any existing object |
-| `_gsd_cursor` | Replaced with the selected profile name, manager marker, and package version |
-
-When switching from `hybrid` to `max`, `value`, or `budget`, the CLI removes the four phase keys `planning`, `verification`, `execution`, and `research` from an existing `models` object. Other keys inside `models` are preserved.
-
-> [!IMPORTANT]
-> If you already maintain custom values in any managed key, back up the file before installing or changing profiles. `gsd-cursor` performs a deterministic merge, not an interactive conflict resolution or automatic restore.
-
-### Safe backup and rollback
-
-For a local configuration:
+### Local
 
 ```bash
-cp .planning/config.json .planning/config.json.before-gsd-cursor
 gsd-cursor install --profile hybrid --local
 ```
 
-To restore the exact prior state:
+Writes:
 
-```bash
-cp .planning/config.json.before-gsd-cursor .planning/config.json
+```text
+<current directory>/.planning/config.json
 ```
 
-For a global configuration:
+Use local scope when routing should be project-specific or committed with project planning state.
+
+### Global
 
 ```bash
-cp ~/.gsd/defaults.json ~/.gsd/defaults.json.before-gsd-cursor
 gsd-cursor install --profile hybrid --global
 ```
 
-> [!CAUTION]
-> The current CLI treats a missing, unreadable, or malformed target JSON file as an empty object before writing. Validate and back up an existing configuration first; otherwise invalid JSON can be replaced by a newly generated configuration.
+Writes:
 
-## Configuration examples
-
-<details>
-<summary><strong>max</strong> — strongest everywhere</summary>
-
-```json
-{
-  "runtime": "cursor",
-  "model_profile": "quality",
-  "model_profile_overrides": {
-    "cursor": {
-      "opus": "claude-opus-4-8-thinking-high",
-      "sonnet": "cursor-grok-4.5-high",
-      "haiku": "gpt-5.5-high"
-    }
-  }
-}
+```text
+~/.gsd/defaults.json
 ```
 
-</details>
+Use global scope for a personal default inherited by projects without a local override.
 
-<details>
-<summary><strong>hybrid</strong> — premium planning and review, value execution</summary>
+### Automatic selection
 
-```json
-{
-  "runtime": "cursor",
-  "model_profile": "balanced",
-  "models": {
-    "planning": "opus",
-    "verification": "opus",
-    "execution": "sonnet",
-    "research": "sonnet"
-  },
-  "model_profile_overrides": {
-    "cursor": {
-      "opus": "claude-opus-4-8-thinking-high",
-      "sonnet": "composer-2.5",
-      "haiku": "gpt-5.3-codex-high"
-    }
-  }
-}
+When neither flag is provided:
+
+1. If `<cwd>/.planning/` exists, use local scope.
+2. Otherwise, use global scope.
+
+Explicit scope is recommended in scripts and automation.
+
+## Safe configuration management
+
+Configuration files are state, not disposable generated output. gsd-cursor uses four safeguards.
+
+### 1. Strict JSON parsing
+
+Malformed JSON is rejected. The original file is left byte-for-byte unchanged and no backup is overwritten.
+
+### 2. Previous-file backup
+
+Before replacing an existing configuration, the CLI writes:
+
+```text
+config.json.gsd-cursor.bak
 ```
 
-</details>
+This backup represents the file immediately before the most recent gsd-cursor write.
 
-<details>
-<summary><strong>value</strong> — price/performance mix</summary>
+### 3. Atomic replacement
 
-```json
-{
-  "runtime": "cursor",
-  "model_profile": "budget",
-  "model_profile_overrides": {
-    "cursor": {
-      "opus": "gemini-3-pro",
-      "sonnet": "glm-5.2",
-      "haiku": "composer-2.5"
-    }
-  }
-}
+The new JSON is written to a temporary file in the same directory and renamed into place. A partially written configuration is never intentionally exposed.
+
+### 4. Exact managed-field snapshot
+
+On first install, `_gsd_cursor.snapshot` records whether each managed field existed and its exact prior value. Switching profiles keeps that snapshot. Uninstall uses it to restore:
+
+- `runtime`;
+- `model_profile`;
+- `model_policy.runtime_tiers.cursor`;
+- `model_profile_overrides.cursor`;
+- all six managed phase keys inside `models`;
+- every agent key that any bundled profile can manage.
+
+Other runtime policies, provider maps, custom phases, custom agents, and unrelated configuration remain untouched.
+
+> [!NOTE]
+> A configuration installed by gsd-cursor 1.0.x has no embedded snapshot. When upgraded in place, 1.1.0 snapshots the state it sees at upgrade time. A legacy uninstall can remove managed nested values but cannot reconstruct values that 1.0.x already replaced.
+
+## Model availability and research basis
+
+The 1.1.0 catalog was validated against the exact output of a signed-in Cursor CLI on **2026-07-29**. The supplied Cursor UI catalog included the relevant Grok, Composer, Claude, GPT-5.6, Gemini, Kimi, and GLM families.
+
+Availability can still vary because of:
+
+- Cursor plan and organization policy;
+- regional rollout;
+- model enablement in Cursor Settings;
+- Desktop/CLI versus Cloud Agents catalog differences;
+- later model renames or retirement.
+
+The local Cursor CLI is therefore authoritative for the current account. Run `gsd-cursor doctor` instead of assuming that an ID visible in documentation is enabled for you.
+
+### Research references
+
+- [CursorBench 3.2](https://cursor.com/evals) — relative coding-agent quality, cost per task, token use, and statistical caveats.
+- [Cursor Grok 4.5](https://cursor.com/grok) — Cursor's long-horizon coding and knowledge-work model.
+- [Composer 2.5](https://cursor.com/blog/composer-2-5) — standard and Fast behavior and pricing trade-offs.
+- [Kimi K3](https://github.com/MoonshotAI/Kimi-K3) — long-horizon coding, repository work, terminal tools, and large context.
+- [GLM 5.2](https://huggingface.co/zai-org/GLM-5.2) — open-weight long-horizon flagship model card.
+- [Gemini 3.6 Flash](https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash) — large-context, multimodal, agentic coding model.
+
+Benchmark results are snapshots, not guarantees. Small differences can be statistically insignificant, real project distributions differ from benchmark tasks, and latency varies by region and service load. Profile design therefore combines benchmark evidence with specialization, provider independence, context needs, and operational cost.
+
+## Upgrade from 1.0.x
+
+Install the new release:
+
+```bash
+npm install --global github:clezcoding/gsd-cursor#v1.1.0
 ```
 
-Confirm `gemini-3-pro` and `glm-5.2` in Cursor before use.
+Inspect the new catalog:
 
-</details>
-
-<details>
-<summary><strong>budget</strong> — lowest-cost intended mix</summary>
-
-```json
-{
-  "runtime": "cursor",
-  "model_profile": "budget",
-  "model_profile_overrides": {
-    "cursor": {
-      "opus": "glm-5.2",
-      "sonnet": "composer-2.5",
-      "haiku": "gemini-3.5-flash"
-    }
-  }
-}
+```bash
+gsd-cursor list
 ```
 
-Confirm `glm-5.2` and `gemini-3.5-flash` in Cursor before use.
+Validate the intended profile:
 
-</details>
+```bash
+gsd-cursor doctor --profile hybrid
+```
+
+Re-apply the profile to write current policy keys, all six phases, and the restore snapshot:
+
+```bash
+gsd-cursor install --profile hybrid --local
+```
+
+Major changes from 1.0.x:
+
+- four profiles expanded to six;
+- invalid IDs such as `gemini-3-pro` and `glm-5.2` replaced with current exact Cursor IDs;
+- Opus 4.8 and older GPT defaults replaced with current families;
+- all six GSD phases are routed;
+- current `model_policy.runtime_tiers.cursor` support added;
+- targeted agent overrides added;
+- strict parsing, backup, atomic writes, exact restore, and `doctor` added;
+- `frontier` and `openweight` profiles added.
 
 ## Troubleshooting
 
-### The CLI updated the wrong configuration
+### A model is reported missing
 
-Automatic scope selection prefers local only when `.planning/` already exists in the current directory. Re-run the command with an explicit flag:
-
-```bash
-gsd-cursor install --profile hybrid --local
-# or
-gsd-cursor install --profile hybrid --global
-```
-
-Then inspect both locations:
+Run:
 
 ```bash
-gsd-cursor status --local
-gsd-cursor status --global
+agent --list-models
+gsd-cursor doctor --profile <name>
 ```
 
-### `Unknown profile` error
+Confirm the model is enabled in **Cursor → Settings → Models**. If your organization restricts a provider, choose a profile that avoids it:
 
-Valid profile names are exactly:
+- Cursor-only: `frontier`
+- Kimi + GLM: `openweight`
+- broad provider mix: `hybrid`
 
-```text
-max  hybrid  value  budget
+### `agent` is not found
+
+Install or update Cursor CLI and sign in. `doctor` needs the local `agent` executable, but profile installation does not.
+
+For non-standard installations, point `doctor` at the executable:
+
+```bash
+GSD_CURSOR_AGENT_BIN=/absolute/path/to/agent gsd-cursor doctor
 ```
 
-Names are case-sensitive.
+### The wrong config file changed
 
-### Cursor cannot find a Gemini or GLM model
-
-The model may not be enabled for your account, plan, region, or local custom-model configuration. Open **Cursor → Settings → Models**, confirm the exact ID, and either:
-
-- enable/configure the model;
-- choose `hybrid` or `max`, whose bundled IDs passed the stated API verification;
-- edit your project config with an available replacement ID.
-
-### `status` says “not installed” after installation
-
-You are probably reading a different scope than the one used during installation. Compare both explicitly:
+Automatic scope selection depends on whether `.planning/` exists in the current directory. Use an explicit flag:
 
 ```bash
 gsd-cursor status --local
 gsd-cursor status --global
 ```
 
-### Existing phase routing changed after switching profiles
+Then install or switch with the intended scope.
 
-`hybrid` writes four phase-type keys under `models`. Switching to a profile without a phase map removes those four keys. Restore your backup or re-add your custom phase routing after the switch.
+### The config file contains invalid JSON
 
-### Uninstall did not restore the old runtime or model profile
+gsd-cursor will refuse to write and print the parse error. Repair the JSON manually, validate it, and retry. The CLI intentionally does not silently replace malformed configuration with an empty object.
 
-This is expected. `uninstall` removes the Cursor tier map and the `_gsd_cursor` marker; it does not know the values that existed before installation. Restore a backup for an exact rollback, or manually update `runtime`, `model_profile`, and `models`.
+### I need the state from before the last write
 
-### The command is not found
-
-Confirm that your global npm binary directory is on `PATH`:
+Use the immediate backup:
 
 ```bash
-npm prefix --global
-npm list --global --depth=0
+cp .planning/config.json.gsd-cursor.bak .planning/config.json
 ```
 
-You can also run the repository entry point directly from a clone:
+To restore the state from before the first 1.1.0 install while preserving unrelated later changes, use:
 
 ```bash
-node bin/gsd-cursor.cjs list
+gsd-cursor uninstall --local
 ```
 
-## EoS integration contract
+### Cursor Cloud Agents exposes fewer models
 
-The registry descriptor declares:
+This catalog targets Cursor Desktop and Cursor CLI. Cloud Agents can expose a smaller list. Validate on the surface where GSD will actually run and choose a compatible profile.
 
-| Field | Value |
-|---|---|
-| Type | `eos` |
-| Protocol | `1` |
-| Interface points | `model`, `state` |
-| Profile | `declarative-cli` |
-| Embedding mode | `declarative` |
-| Command surface | `prose-only` |
-| Model mode | `active` |
-| State I/O | `filesystem` |
-| Transport | `native-extension` |
-| Runtime | `node` |
+### A custom agent override disappeared while switching profiles
 
-The canonical descriptor lives at [`registry/eos-entry.json`](registry/eos-entry.json). Registry inclusion is tracked in [open-gsd/gsd-core#2581](https://github.com/open-gsd/gsd-core/pull/2581), with its discussion at [open-gsd/gsd-core#2578](https://github.com/open-gsd/gsd-core/discussions/2578).
+gsd-cursor only manages agent names used by its bundled profiles. If you had a value for one of those exact agents before installation, it is retained in the snapshot and restored on uninstall. During an active profile, the selected profile owns that agent key by design.
 
-## Security and privacy
-
-- The CLI makes no network requests.
-- It does not read Cursor credentials or tokens.
-- It reads and writes only the resolved GSD JSON configuration path.
-- It creates parent directories when necessary.
-- It does not execute downloaded model code or provider SDKs.
-- The repository has no runtime dependencies beyond Node.js built-ins.
-
-Because the CLI writes configuration files, review the selected path printed after every mutation and keep backups for configs containing unrelated custom settings.
-
-## Development
-
-Clone the repository and run the CLI directly:
-
-```bash
-git clone https://github.com/clezcoding/gsd-cursor.git
-cd gsd-cursor
-node bin/gsd-cursor.cjs list
-node bin/gsd-cursor.cjs status --local
-```
-
-There is no build step. Profile data is loaded from `lib/profiles.json`, and the executable is exposed as `gsd-cursor` through the `bin` field in `package.json`.
-
-### Repository layout
+## Project structure
 
 ```text
 gsd-cursor/
-├── bin/
-│   └── gsd-cursor.cjs       # CLI implementation
-├── lib/
-│   └── profiles.json        # profile catalog and model provenance
-├── registry/
-│   └── eos-entry.json       # GSD EoS Registry descriptor
-├── LICENSE
-├── README.md
-└── package.json
+├── bin/gsd-cursor.cjs       CLI, validation, safe writes, snapshots, restore
+├── lib/profiles.json        Versioned six-profile model catalog
+├── registry/eos-entry.json  GSD EoS registry metadata
+├── test/cli.test.cjs        End-to-end CLI and configuration tests
+└── .github/workflows/ci.yml Node.js 18, 20, and 22 test matrix
 ```
 
-When updating a profile, keep these surfaces synchronized:
+The runtime deliberately uses only Node.js built-ins: `fs`, `path`, `os`, and `child_process`. `child_process` is used only by `doctor` to invoke the local Cursor CLI directly with `agent --list-models`; no shell is involved.
 
-1. `lib/profiles.json`
-2. the profile tables and examples in this README
-3. `registry/eos-entry.json` when compatibility or installation metadata changes
-4. the tagged release used by the registry install command
+## Design boundaries
 
-## FAQ
+gsd-cursor does:
 
-<details>
-<summary><strong>Does this install GSD Core?</strong></summary>
+- select the Cursor runtime;
+- install versioned model and phase routing;
+- validate local model availability;
+- preserve and restore managed configuration values.
 
-No. Install and configure GSD Core separately. This tool only adds Cursor model routing to GSD configuration.
+gsd-cursor does not:
 
-</details>
-
-<details>
-<summary><strong>Does it modify Cursor settings?</strong></summary>
-
-No. It writes GSD configuration only. You must enable or configure required models in Cursor yourself.
-
-</details>
-
-<details>
-<summary><strong>Can I keep per-agent model overrides?</strong></summary>
-
-Yes. The CLI does not edit the `model_overrides` key. Review GSD's own precedence rules when combining direct per-agent IDs with phase routing and tier maps.
-
-</details>
-
-<details>
-<summary><strong>Can local and global profiles differ?</strong></summary>
-
-Yes. Use explicit scope flags to maintain separate configurations, for example `hybrid --global` and `max --local` for a specific project.
-
-</details>
-
-<details>
-<summary><strong>Why is hybrid the default?</strong></summary>
-
-Planning and verification are high-leverage reasoning tasks, while execution and research usually consume more total work. `hybrid` spends premium capacity on the former and routes the latter through Composer 2.5, using only IDs verified through the stated Cursor API check.
-
-</details>
-
-## License
-
-Released under the [MIT License](LICENSE).
+- install or modify GSD Core;
+- download or run model weights;
+- dispatch GSD agents itself;
+- change Cursor account settings;
+- guarantee provider availability, benchmark performance, pricing, or ZDR eligibility;
+- send source code, configuration, or telemetry over the network.
 
 ---
 
 <div align="center">
 
-Built for Cursor users who want explicit, inspectable GSD model routing — without carrying a private core patch.
+Start balanced:
 
-[Report an issue](https://github.com/clezcoding/gsd-cursor/issues) · [View releases](https://github.com/clezcoding/gsd-cursor/releases) · [GSD Core](https://github.com/open-gsd/gsd-core)
+```bash
+gsd-cursor doctor --profile hybrid && gsd-cursor install --profile hybrid --local
+```
 
 </div>
