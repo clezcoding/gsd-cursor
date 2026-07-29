@@ -1,44 +1,162 @@
 {
   "runtime": "cursor",
   "default": "hybrid",
+  "phaseKeys": ["planning", "discuss", "research", "execution", "verification", "completion"],
   "profiles": {
     "max": {
-      "label": "Strongest everywhere",
+      "label": "No-compromise quality",
+      "description": "Frontier reasoning for architecture, long-horizon execution, and independent verification.",
       "base": "quality",
-      "overrides": { "opus": "claude-opus-4-8-thinking-high", "sonnet": "cursor-grok-4.5-high", "haiku": "gpt-5.5-high" },
-      "vendors": ["Anthropic", "xAI", "OpenAI"],
-      "verified": true,
-      "unverifiedIds": []
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "sonnet",
+        "execution": "opus",
+        "verification": "haiku",
+        "completion": "haiku"
+      },
+      "overrides": {
+        "opus": "claude-fable-5-thinking-max",
+        "sonnet": "claude-opus-5-thinking-max",
+        "haiku": "gpt-5.6-sol-max"
+      },
+      "agentOverrides": {},
+      "vendors": ["Anthropic", "OpenAI"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": ["Fable 5 is not shown as ZDR-eligible by Cursor; review your data-retention requirements before use."]
     },
     "hybrid": {
-      "label": "Plan+review premium, execute value (default)",
+      "label": "Balanced multi-vendor default",
+      "description": "Premium planning, Kimi execution, economical research, and an independent OpenAI verification path.",
       "base": "balanced",
-      "models": { "planning": "opus", "verification": "opus", "execution": "sonnet", "research": "sonnet" },
-      "overrides": { "opus": "claude-opus-4-8-thinking-high", "sonnet": "composer-2.5", "haiku": "gpt-5.3-codex-high" },
-      "vendors": ["Anthropic", "Cursor", "OpenAI"],
-      "verified": true,
-      "unverifiedIds": []
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "haiku",
+        "execution": "sonnet",
+        "verification": "haiku",
+        "completion": "sonnet"
+      },
+      "overrides": {
+        "opus": "claude-opus-5-thinking-high",
+        "sonnet": "kimi-k3-high",
+        "haiku": "composer-2.5"
+      },
+      "agentOverrides": {
+        "gsd-code-reviewer": "gpt-5.6-sol-high",
+        "gsd-security-auditor": "gpt-5.6-sol-high",
+        "gsd-verifier": "gpt-5.6-sol-high"
+      },
+      "vendors": ["Anthropic", "Kimi", "Cursor", "OpenAI"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": []
     },
     "value": {
-      "label": "Best price/performance",
-      "base": "budget",
-      "overrides": { "opus": "gemini-3-pro", "sonnet": "glm-5.2", "haiku": "composer-2.5" },
-      "vendors": ["Google", "Zhipu", "Cursor"],
-      "verified": false,
-      "unverifiedIds": ["gemini-3-pro", "glm-5.2"]
+      "label": "Best performance per dollar",
+      "description": "Cursor Grok for high-leverage reasoning, Terra for execution, and Composer for volume work.",
+      "base": "balanced",
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "haiku",
+        "execution": "sonnet",
+        "verification": "opus",
+        "completion": "sonnet"
+      },
+      "overrides": {
+        "opus": "cursor-grok-4.5-high",
+        "sonnet": "gpt-5.6-terra-xhigh",
+        "haiku": "composer-2.5"
+      },
+      "agentOverrides": {},
+      "vendors": ["Cursor", "OpenAI"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": ["Cursor reports that Grok 4.5 may have an unknown CursorBench advantage from older Cursor repository data in training."]
     },
     "budget": {
-      "label": "Cheapest models only",
+      "label": "Low-cost daily work",
+      "description": "GLM planning, Composer execution, Luna research, and targeted Gemini use for UI/AI research.",
       "base": "budget",
-      "overrides": { "opus": "glm-5.2", "sonnet": "composer-2.5", "haiku": "gemini-3.5-flash" },
-      "vendors": ["Zhipu", "Cursor", "Google"],
-      "verified": false,
-      "unverifiedIds": ["glm-5.2", "gemini-3.5-flash"]
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "haiku",
+        "execution": "sonnet",
+        "verification": "sonnet",
+        "completion": "sonnet"
+      },
+      "overrides": {
+        "opus": "glm-5.2-high",
+        "sonnet": "composer-2.5",
+        "haiku": "gpt-5.6-luna-medium"
+      },
+      "agentOverrides": {
+        "gsd-ai-researcher": "gemini-3.6-flash-medium",
+        "gsd-ui-researcher": "gemini-3.6-flash-medium"
+      },
+      "vendors": ["Z.ai", "Cursor", "OpenAI", "Google"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": []
+    },
+    "frontier": {
+      "label": "Cursor-native frontier",
+      "description": "Only Cursor models: Grok 4.5 for deep and fast work, Composer 2.5 for the Sonnet tier and mapping/synthesis.",
+      "base": "balanced",
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "sonnet",
+        "execution": "sonnet",
+        "verification": "opus",
+        "completion": "sonnet"
+      },
+      "overrides": {
+        "opus": "cursor-grok-4.5-high-fast",
+        "sonnet": "composer-2.5",
+        "haiku": "cursor-grok-4.5-low-fast"
+      },
+      "agentOverrides": {
+        "gsd-codebase-mapper": "composer-2.5-fast",
+        "gsd-doc-classifier": "composer-2.5",
+        "gsd-executor": "cursor-grok-4.5-medium",
+        "gsd-pattern-mapper": "composer-2.5-fast",
+        "gsd-research-synthesizer": "composer-2.5"
+      },
+      "vendors": ["Cursor"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": ["Fast variants trade higher token prices for lower latency."]
+    },
+    "openweight": {
+      "label": "Kimi + GLM open-weight stack",
+      "description": "Kimi for long-horizon planning and coding, with GLM as an independent verification path.",
+      "base": "balanced",
+      "models": {
+        "planning": "opus",
+        "discuss": "opus",
+        "research": "opus",
+        "execution": "haiku",
+        "verification": "sonnet",
+        "completion": "sonnet"
+      },
+      "overrides": {
+        "opus": "kimi-k3-max",
+        "sonnet": "glm-5.2-max",
+        "haiku": "kimi-k2.7-code"
+      },
+      "agentOverrides": {
+        "gsd-doc-classifier": "glm-5.2-high",
+        "gsd-integration-checker": "glm-5.2-high",
+        "gsd-plan-checker": "glm-5.2-high"
+      },
+      "vendors": ["Kimi", "Z.ai"],
+      "availability": "Cursor Desktop/CLI catalog",
+      "notes": ["Open-weight describes model availability, not local execution; Cursor still hosts and routes these models."]
     }
   },
-  "notes": {
-    "verifiedSource": "Cursor Cloud-Agents List Models API (2026-07-22): composer-2.5, cursor-grok-4.5-high, claude-*-thinking-*, gpt-*.",
-    "unverifiedSource": "gemini-* and glm-* come from Cursor's IDE model picker / OpenAI-compatible custom-model integration — confirm the exact slug in Settings > Models before use.",
-    "glm": "glm-5.2 supersedes glm-5.1 (newer, cheaper, stronger). glm-5.1 kept only as a documented swap."
+  "provenance": {
+    "catalog": "Validated against the signed-in Cursor CLI model catalog (`agent --list-models`) on 2026-07-29.",
+    "benchmark": "Profile design informed by CursorBench 3.2; small score differences may not be statistically significant.",
+    "surface": "These profiles target Cursor Desktop and Cursor CLI. Cursor Cloud Agents can expose a smaller model subset.",
+    "account": "Availability can vary by Cursor plan, organization policy, region, and model-catalog changes. Run `gsd-cursor doctor` locally before use."
   }
 }
